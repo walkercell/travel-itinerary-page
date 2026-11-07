@@ -1,0 +1,162 @@
+{
+  "meta": {
+    "title": "<行程标题，例如：城市 A + 城市 B 七日游>",
+    "pageTitle": "<浏览器标签页标题>",
+    "subtitle": "<出发 → 返回 · 人数 · 节奏>",
+    "people": 2,
+    "currency": "¥",
+    "storageKey": "my-trip-budget-v1"
+  },
+  "segments": [
+    {"id": "a", "label": "<城市 A>", "color": "#c0392b"},
+    {"id": "b", "label": "<城市 B>", "color": "#2a6fb0"},
+    {"id": "fly", "label": "飞行", "color": "#5b5f97"}
+  ],
+  "route": [
+    {"seg": "fly", "label": "<出发地>"},
+    {"seg": "a", "label": "<城市 A n晚>"},
+    {"seg": "b", "label": "<城市 B n晚>"},
+    {"seg": "fly", "label": "<返回地>"}
+  ],
+  "stats": [
+    {"value": "<n 天 n 晚>", "label": "<出发日 → 返回日>"},
+    {"value": "{{total}}", "label": "全包预算（按你的选择）"},
+    {"value": "{{perPerson}}", "label": "折合每人"}
+  ],
+  "overview": [
+    {"label": "一句话", "text": "<整趟行程一句话概括>"},
+    {"label": "适合", "text": "<适合谁、什么节奏>"}
+  ],
+  "flights": [
+    {
+      "no": "XX123",
+      "tag": "去程",
+      "airline": "<航空公司>",
+      "aircraft": "<机型>",
+      "status": "待预订",
+      "from": {"code": "AAA", "city": "<出发城市>"},
+      "to": {"code": "BBB", "city": "<城市 A>"},
+      "depart": "2027-05-01T08:30:00+08:00",
+      "departLabel": "<5月1日 周六>",
+      "departTime": "08:30",
+      "arriveLabel": "当天",
+      "arriveTime": "12:45",
+      "duration": "<4 小时 15 分>",
+      "price": "<往返约 ¥0/人>"
+    }
+  ],
+  "spots": {
+    "spot1": {
+      "name": "<景点名>",
+      "en": "<English name，用来自动找图片>",
+      "img": "",
+      "desc": "<两三句介绍>",
+      "ticket": "<门票价格及来源可信度>",
+      "hours": "<开放时间，闭馆日用 **加粗**>",
+      "stay": "<建议停留时间>",
+      "tip": "<一条实用小贴士>"
+    }
+  },
+  "map": {
+    "places": {
+      "hotel-a": {"lat": 0.0, "lng": 0.0, "name": "<城市 A 酒店>", "kind": "hotel"},
+      "spot1": {"lat": 0.0, "lng": 0.0, "name": "<景点名>", "kind": "spot", "spot": "spot1"}
+    },
+    "routes": {
+      "5.2": ["hotel-a", "spot1"]
+    },
+    "airLegs": []
+  },
+  "days": [
+    {
+      "date": "5.2",
+      "weekday": "<周几>",
+      "seg": "a",
+      "title": "<当天主题>",
+      "slots": [
+        ["上午", "<安排，景点写成 [[spot1]] 会变成可点开的按钮>"],
+        ["下午", "<安排>"],
+        ["晚上", "<安排>"]
+      ],
+      "eat": "<早 · 午 · 晚 推荐>",
+      "stay": "<当晚住哪>",
+      "note": "<为什么这样排、注意事项>"
+    }
+  ],
+  "transport": {
+    "columns": ["日期", "方式", "路线", "时间", "参考价"],
+    "rows": [
+      ["<日期>", "**XX123**", "<出发城市 → 城市 A>", "<08:30 → 12:45>", "<¥0/人>"]
+    ],
+    "note": ""
+  },
+  "hotels": [
+    {"img": "", "name": "<城市 · 酒店名>", "tag": "", "meta": "<日期 · 晚数 · 星级 · 亮点>", "price": "<参考价 **¥0**>", "alt": "<省钱备选>"}
+  ],
+  "budget": {
+    "note": "<汇率假设和说明>",
+    "items": [
+      {
+        "id": "flight",
+        "cat": "交通",
+        "name": "机票",
+        "note": "<往返 × 人数>",
+        "verified": true,
+        "options": [{"label": "<航班方案>", "amount": 0, "detail": "<单价>"}],
+        "presets": {"eco": 0, "com": 0}
+      },
+      {
+        "id": "airportIn",
+        "cat": "交通",
+        "name": "机场 → 酒店",
+        "note": "<落地时间>",
+        "options": [
+          {"label": "机场大巴", "amount": 0, "detail": "<¥0/人>"},
+          {"label": "出租车", "amount": 0}
+        ],
+        "presets": {"eco": 0, "com": 1}
+      },
+      {
+        "id": "hotel",
+        "cat": "住宿",
+        "name": "<城市 A n 晚>",
+        "note": "",
+        "verified": true,
+        "options": [{"label": "<推荐酒店>", "amount": 0}, {"label": "<省钱备选>", "amount": 0}],
+        "presets": {"eco": 1, "com": 0}
+      },
+      {
+        "id": "meals",
+        "cat": "餐饮",
+        "name": "<n 天三餐>",
+        "note": "",
+        "options": [{"label": "简单", "amount": 0, "detail": "<¥/人/天>"}, {"label": "舒适", "amount": 0, "detail": "<¥/人/天>"}],
+        "presets": {"eco": 0, "com": 1}
+      },
+      {
+        "id": "tix",
+        "cat": "门票",
+        "name": "景点门票（多选）",
+        "multi": true,
+        "note": "金额按全体人数算",
+        "options": [{"label": "<景点名>", "amount": 0, "detail": "<¥/人>"}],
+        "presets": {"eco": [0], "com": [0]}
+      },
+      {
+        "id": "misc",
+        "cat": "杂项",
+        "name": "签证 / 上网 / 保险 / 纪念品 / 零碎",
+        "note": "可以拆成多项",
+        "options": [{"label": "<方案>", "amount": 0}],
+        "presets": {"eco": 0, "com": 0}
+      }
+    ]
+  },
+  "tips": [
+    {"title": "🌡️ 天气与穿衣", "items": ["<……>"]},
+    {"title": "🛂 证件与预订", "items": ["<……>"]},
+    {"title": "⚠️ 避坑", "items": ["<……>"]},
+    {"title": "🛟 安全", "items": ["<……>"]}
+  ],
+  "disclaimer": "以上行程与价格基于公开信息整理，出行前请以官方实时信息（景区公告、车票机票、天气）为准。"
+}

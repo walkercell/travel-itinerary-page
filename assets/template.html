@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Travel Itinerary</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{
+  --bg:#f6f4ef; --card:#ffffff; --ink:#1d1f23; --muted:#6b6f76; --line:#e4e1d8; --soft:#f1eee6;
+  --accent:#2a6fb0; --ok:#2e7d4f; --ok-bg:#e7f4ec; --warn:#b5651d; --warn-bg:#fdf3e1;
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15171a; --card:#1e2125; --ink:#eceae4; --muted:#9a9ea6; --line:#2e3238; --soft:#25292e;
+    --accent:#7ab4ea; --ok:#6cc58f; --ok-bg:#1b3326; --warn:#e3a062; --warn-bg:#382b16; --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15171a; --card:#1e2125; --ink:#eceae4; --muted:#9a9ea6; --line:#2e3238; --soft:#25292e;
+  --accent:#7ab4ea; --ok:#6cc58f; --ok-bg:#1b3326; --warn:#e3a062; --warn-bg:#382b16; --shadow:none;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.7 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+.wrap{max-width:1000px;margin:0 auto;padding:28px 16px 72px}
+h1{font-size:30px;line-height:1.25;margin:0 0 6px}
+h2{font-size:21px;margin:44px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+h3{font-size:16px;margin:0 0 4px}
+p{margin:6px 0}
+a{color:var(--accent)}
+.muted{color:var(--muted)} .small{font-size:13px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;box-shadow:var(--shadow)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.stat b{display:block;font-size:22px;line-height:1.25}
+.stat small{color:var(--muted)}
+.route{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:16px 0}
+.arrow{color:var(--muted)}
+.pill{display:inline-block;padding:3px 10px;border-radius:999px;font-weight:600;font-size:13px;white-space:nowrap;color:var(--seg);background:color-mix(in srgb,var(--seg) 13%,transparent)}
+.tag{display:inline-block;font-size:11.5px;padding:0 7px;border-radius:999px;font-weight:600;margin-left:4px;vertical-align:1px;white-space:nowrap}
+.t-ok{background:var(--ok-bg);color:var(--ok)} .t-est{background:var(--warn-bg);color:var(--warn)}
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:13px;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+.tbl td:first-child,.tbl td:nth-child(2){white-space:nowrap}
+.themebtn{float:right;font:inherit;font-size:13px;border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:999px;padding:4px 12px;cursor:pointer}
+/* flights */
+.flights{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(300px,420px);gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:8px}
+.fcard{scroll-snap-align:start;background:#1b2630;color:#eef1f3;border-radius:18px;padding:18px 20px 16px;display:flex;flex-direction:column;gap:10px}
+.fcard .ftop{display:flex;justify-content:space-between;align-items:center;font:600 12px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.12em;color:#9fb0bd}
+.fcard .fstatus{font:600 11.5px/1 -apple-system,"PingFang SC",sans-serif;letter-spacing:0;padding:4px 9px;border-radius:999px;background:#33424f;color:#f2c879}
+.fcard .fair{font-size:12.5px;color:#9fb0bd}
+.fcard .froute{display:grid;grid-template-columns:auto 1fr auto;align-items:end;gap:10px}
+.fcard .code{font:800 40px/1 -apple-system,BlinkMacSystemFont,sans-serif;letter-spacing:.02em}
+.fcard .city{font-size:12.5px;color:#b9c6d0;margin-top:4px}
+.fcard .right{text-align:right}
+.fcard .mid{text-align:center;font:600 11.5px/1.2 ui-monospace,Menlo,monospace;color:#9fb0bd;padding-bottom:20px}
+.fcard .mid .line{height:1px;background:#6b7d8a;margin:6px 0;position:relative}
+.fcard .mid .line::after{content:"";position:absolute;right:-1px;top:-3px;border:4px solid transparent;border-left:6px solid #6b7d8a;border-right:0}
+.fcard .ftimes{display:flex;justify-content:space-between;font-size:12.5px;color:#9fb0bd}
+.fcard .ftimes b{display:block;color:#eef1f3;font-size:14px}
+.fcard .fcount{border-top:1px solid #33424f;padding-top:10px;display:flex;justify-content:space-between;align-items:end;gap:8px}
+.fcard .fcount small{display:block;font-size:12px;color:#9fb0bd}
+.fcard .fcount .cd{font:800 26px/1.15 ui-monospace,SFMono-Regular,Menlo,monospace}
+.fcard .fprice{font-size:12px;color:#b9c6d0;text-align:right}
+/* map */
+#tripmap{height:460px;border-radius:12px;border:1px solid var(--line);background:var(--soft);z-index:0}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
+.chips button,.preset{font:inherit;font-size:13px;padding:4px 11px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;white-space:nowrap}
+.chips button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-top:8px}
+.legend i{display:inline-block;width:14px;height:4px;border-radius:2px;vertical-align:middle;margin-right:4px}
+.mapnum{background:#fff;border:2px solid currentColor;border-radius:50%;width:24px;height:24px;text-align:center;font:700 12px/20px -apple-system,sans-serif}
+.leaflet-popup-content{font:14px/1.5 -apple-system,"PingFang SC",sans-serif;margin:10px 12px}
+.mapfallback{padding:40px 16px;text-align:center;color:var(--muted)}
+/* days */
+.day{background:var(--card);border:1px solid var(--line);border-radius:12px;margin:0 0 14px;box-shadow:var(--shadow);overflow:hidden}
+.dayhead{display:flex;gap:12px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.dayhead .d{font-weight:700;font-size:16px;white-space:nowrap}
+.dayhead .title{font-weight:600}
+.daymap{margin-left:auto;font:inherit;font-size:12.5px;border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:999px;padding:2px 10px;cursor:pointer}
+.daybody{padding:12px 16px 14px}
+.slot{display:grid;grid-template-columns:52px 1fr;gap:10px;padding:6px 0}
+.slot .when{color:var(--muted);font-size:13px;padding-top:2px;white-space:nowrap}
+.meta{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);font-size:13.5px}
+.meta b{color:var(--muted);font-weight:600;margin-right:4px}
+.spot{font:inherit;font-size:13.5px;display:inline-flex;align-items:center;gap:4px;padding:2px 10px;margin:2px;border-radius:999px;border:1px solid var(--line);background:var(--soft);color:var(--ink);cursor:pointer}
+.spot:hover,.spot:focus-visible{border-color:var(--accent);color:var(--accent);outline:none}
+.spot::after{content:"ⓘ";font-size:12px;opacity:.6}
+/* hotels */
+.hotel{display:grid;grid-template-columns:140px 1fr;gap:14px}
+.hotel img{width:140px;height:100px;object-fit:cover;border-radius:8px;background:var(--soft)}
+/* modal */
+dialog{border:none;border-radius:14px;padding:0;max-width:560px;width:calc(100% - 32px);background:var(--card);color:var(--ink);box-shadow:0 20px 60px rgba(0,0,0,.35)}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+.m-img{width:100%;height:260px;object-fit:cover;display:block;background:var(--soft)}
+.m-body{padding:16px 18px 18px}
+.m-body h3{font-size:19px;margin-bottom:2px}
+.m-facts{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:12px 0;font-size:14px}
+.m-facts dt{color:var(--muted)} .m-facts dd{margin:0}
+.m-close{position:absolute;top:10px;right:10px;width:34px;height:34px;border-radius:50%;border:none;background:rgba(0,0,0,.55);color:#fff;font-size:18px;cursor:pointer}
+/* budget */
+.bcat{margin:0 0 14px}
+.bcat-head{display:flex;justify-content:space-between;align-items:baseline;padding:4px 2px 8px;font-weight:700;font-size:16px}
+.bi{padding:12px 0;border-top:1px solid var(--line)}
+.bi:first-of-type{border-top:none;padding-top:2px}
+.bi-head{display:flex;align-items:center;gap:8px}
+.bi-name{font-weight:600}
+.bi-amt{margin-left:auto;display:flex;align-items:center;gap:4px}
+.bi-amt input{width:96px;font:inherit;font-variant-numeric:tabular-nums;text-align:right;padding:3px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+.bi-amt input.custom{border-color:var(--warn);color:var(--warn);font-weight:600}
+.bi-amt .undo{font:inherit;font-size:12px;border:none;background:none;color:var(--warn);cursor:pointer;padding:0 2px}
+.bi-note{font-size:12.5px;color:var(--muted);margin:2px 0 6px}
+.bi-opts{display:flex;flex-wrap:wrap;gap:6px}
+.bi-opts button{font:inherit;font-size:13px;padding:4px 11px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;text-align:left}
+.bi-opts button small{color:var(--muted);margin-left:4px}
+.bi-opts button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.bi-opts button[aria-pressed="true"] small{color:inherit;opacity:.75}
+.bi-opts.multi button::before{content:"☐ "}
+.bi-opts.multi button[aria-pressed="true"]::before{content:"☑ "}
+ul.tips{margin:0;padding-left:20px} ul.tips li{margin:4px 0}
+.footer-note{margin-top:36px;padding:14px 16px;border-radius:10px;background:var(--soft);font-size:14px}
+@media (max-width:760px){
+  .grid2{grid-template-columns:1fr} .grid4{grid-template-columns:1fr 1fr}
+  .meta{grid-template-columns:1fr}
+  .hotel{grid-template-columns:1fr} .hotel img{width:100%;height:150px}
+  h1{font-size:24px} .m-img{height:200px}
+  #tripmap{height:380px} .flights{grid-auto-columns:86%} .fcard .code{font-size:34px}
+}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<dialog id="modal" aria-labelledby="mTitle">
+  <div style="position:relative">
+    <button class="m-close" id="mClose" type="button" aria-label="关闭">✕</button>
+    <img class="m-img" id="mImg" alt="">
+  </div>
+  <div class="m-body">
+    <h3 id="mTitle"></h3>
+    <div class="small muted" id="mEn"></div>
+    <p id="mDesc"></p>
+    <dl class="m-facts">
+      <dt>门票</dt><dd id="mTicket"></dd>
+      <dt>开放</dt><dd id="mHours"></dd>
+      <dt>建议停留</dt><dd id="mStay"></dd>
+      <dt>小贴士</dt><dd id="mTip"></dd>
+    </dl>
+    <div class="small muted">图片来自 Wikimedia Commons</div>
+  </div>
+</dialog>
+
+<!-- build_page.py replaces the placeholder below with the trip JSON -->
+<script id="trip-data" type="application/json">/*__TRIP_DATA__*/</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+(function(){
+var T=JSON.parse(document.getElementById("trip-data").textContent);
+var M=T.meta||{}, CUR=M.currency||"¥", PEOPLE=M.people||2;
+document.title=M.pageTitle||M.title||document.title;
+
+/* ---------- helpers ---------- */
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function spotBtn(k){var s=(T.spots||{})[k]; return s?'<button type="button" class="spot" data-k="'+esc(k)+'">'+esc(s.name)+'</button>':esc(k);}
+/* rich text: escape, then **bold** and [[spotKey]] */
+function rich(s){return esc(s).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>").replace(/\[\[([a-zA-Z0-9_-]+)\]\]/g,function(_,k){return spotBtn(k);});}
+function fmt(n){return CUR+Math.round(n).toLocaleString("en-US");}
+var SEG={}; (T.segments||[]).forEach(function(s){SEG[s.id]=s;});
+function pill(segId,label){var s=SEG[segId]||{color:"#888"}; return '<span class="pill" style="--seg:'+esc(s.color)+'">'+esc(label||s.label)+'</span>';}
+
+/* ---------- page skeleton ---------- */
+var h="";
+h+='<header><button class="themebtn" id="themeBtn" type="button">切换深浅色</button><h1>'+esc(M.title)+'</h1>';
+if(M.subtitle) h+='<p class="muted">'+esc(M.subtitle)+'</p>';
+if(T.route&&T.route.length) h+='<div class="route">'+T.route.map(function(r){return pill(r.seg,r.label);}).join('<span class="arrow">→</span>')+'</div>';
+if(T.stats&&T.stats.length) h+='<div class="grid4">'+T.stats.map(function(s){return '<div class="card stat"><b data-stat="'+esc(s.value)+'">'+esc(s.value)+'</b><small>'+esc(s.label)+'</small></div>';}).join("")+'</div>';
+if(T.spots&&Object.keys(T.spots).length) h+='<p class="small muted" style="margin-top:10px">点击行程里带 ⓘ 的景点按钮，可以看介绍、图片、门票和开放时间。</p>';
+h+='</header>';
+if(T.flights&&T.flights.length) h+='<h2>✈️ 航班行程 <span class="small muted" style="font-weight:400">· 左右滑动查看</span></h2><div class="flights" id="flights"></div>';
+if(T.overview&&T.overview.length) h+='<h2>📋 行程总览</h2><div class="card">'+T.overview.map(function(o){return '<p><b>'+esc(o.label)+'：</b>'+rich(o.text)+'</p>';}).join("")+'</div>';
+var hasMap=T.map&&T.map.places&&Object.keys(T.map.places).length;
+if(hasMap){
+  h+='<h2>🗺️ 路线地图</h2><div class="card"><div class="chips" id="mapChips" role="group" aria-label="按天查看路线"></div><div id="tripmap"></div><div class="legend" id="legend"></div>'+
+     '<p class="small muted" style="margin-top:6px">点日期只看那一天的路线，数字是当天的游览顺序；点地图上的景点可以打开介绍。</p></div>';
+}
+if(T.days&&T.days.length) h+='<h2>🗓️ 每日行程</h2><div id="days"></div>';
+if(T.transport&&T.transport.rows&&T.transport.rows.length){
+  h+='<h2>🚆 交通总览</h2><div class="card tbl"><table><thead><tr>'+(T.transport.columns||[]).map(function(c){return '<th>'+esc(c)+'</th>';}).join("")+'</tr></thead><tbody>'+
+     T.transport.rows.map(function(r){return '<tr>'+r.map(function(c){return '<td>'+rich(c)+'</td>';}).join("")+'</tr>';}).join("")+'</tbody></table>'+
+     (T.transport.note?'<p class="small muted">'+rich(T.transport.note)+'</p>':'')+'</div>';
+}
+if(T.hotels&&T.hotels.length){
+  h+='<h2>🏨 住宿</h2><div class="grid2">'+T.hotels.map(function(x){
+    return '<div class="card hotel">'+(x.img?'<img src="'+esc(x.img)+'" alt="'+esc(x.name)+'" loading="lazy" onerror="this.style.display=\'none\'">':'<div></div>')+
+      '<div><h3>'+esc(x.name)+(x.tag?' <span class="tag t-ok">'+esc(x.tag)+'</span>':'')+'</h3>'+
+      (x.meta?'<div class="small muted">'+rich(x.meta)+'</div>':'')+(x.price?'<div>'+rich(x.price)+'</div>':'')+(x.alt?'<div class="small muted">'+rich(x.alt)+'</div>':'')+
+      (x.url?'<a href="'+esc(x.url)+'" target="_blank" rel="noopener">查看 / 预订</a>':'')+'</div></div>';}).join("")+'</div>';
+}
+if(T.budget&&T.budget.items&&T.budget.items.length){
+  h+='<h2>💰 预算（'+PEOPLE+' 人全包 · 每项自己选）</h2><div class="card" style="margin-bottom:12px"><div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">'+
+     '<span class="small muted">一键套用：</span><button type="button" class="preset" data-preset="eco">省钱方案</button><button type="button" class="preset" data-preset="com">舒适方案</button><button type="button" class="preset" data-preset="reset">清除我改过的金额</button>'+
+     '<span style="margin-left:auto" class="small muted">合计 <b id="bTotal" style="font-size:18px;color:var(--ink)">—</b> · 每人 <b id="bPP">—</b></span></div>'+
+     '<p class="small muted" style="margin:8px 0 0">每一项点选你要的方案（标 ☐ 的可以多选）；觉得价格不准，直接改右边的金额，会记在这台设备的浏览器里。<span class="tag t-ok">已查</span>是实时查到的价格，<span class="tag t-est">估</span>是按攻略估算。</p></div>'+
+     '<div id="budget"></div>'+(T.budget.note?'<div class="card" style="margin-top:12px"><p class="small muted" style="margin:0">'+rich(T.budget.note)+'</p></div>':'');
+}
+if(T.tips&&T.tips.length) h+='<h2>🎒 实用贴士</h2><div class="grid2">'+T.tips.map(function(g){return '<div class="card"><h3>'+esc(g.title)+'</h3><ul class="tips">'+g.items.map(function(i){return '<li>'+rich(i)+'</li>';}).join("")+'</ul></div>';}).join("")+'</div>';
+if(T.disclaimer) h+='<div class="footer-note">'+rich(T.disclaimer)+'</div>';
+document.getElementById("app").innerHTML=h;
+
+/* ---------- days ---------- */
+var ROUTES=(T.map&&T.map.routes)||{};
+if(T.days&&T.days.length){
+  document.getElementById("days").innerHTML=T.days.map(function(x){
+    var s='<section class="day"><div class="dayhead"><span class="d">'+esc(x.date)+' '+esc(x.weekday||"")+'</span>'+pill(x.seg)+'<span class="title">'+esc(x.title)+'</span>'+
+      (hasMap&&ROUTES[x.date]?'<button type="button" class="daymap" data-day="'+esc(x.date)+'">🗺 地图</button>':'')+'</div><div class="daybody">';
+    (x.slots||[]).forEach(function(sl){s+='<div class="slot"><div class="when">'+esc(sl[0])+'</div><div>'+rich(sl[1])+'</div></div>';});
+    if(x.eat||x.stay) s+='<div class="meta">'+(x.eat?'<div><b>🍽 餐饮</b>'+rich(x.eat)+'</div>':'')+(x.stay?'<div><b>🛏 住宿</b>'+rich(x.stay)+'</div>':'')+'</div>';
+    if(x.note) s+='<p class="small muted" style="margin-top:8px">💡 '+rich(x.note)+'</p>';
+    return s+'</div></section>';
+  }).join("");
+}
+
+/* ---------- spot modal ---------- */
+var dlg=document.getElementById("modal");
+function openSpot(k){
+  var s=(T.spots||{})[k]; if(!s) return;
+  var img=document.getElementById("mImg");
+  img.style.display=s.img?"":"none"; if(s.img){img.src=s.img; img.alt=s.name; img.onerror=function(){img.style.display="none";};}
+  document.getElementById("mTitle").textContent=s.name;
+  document.getElementById("mEn").textContent=s.en||"";
+  document.getElementById("mDesc").textContent=s.desc||"";
+  document.getElementById("mTicket").innerHTML=rich(s.ticket||"—");
+  document.getElementById("mHours").innerHTML=rich(s.hours||"—");
+  document.getElementById("mStay").textContent=s.stay||"—";
+  document.getElementById("mTip").innerHTML=rich(s.tip||"—");
+  if(typeof dlg.showModal==="function") dlg.showModal(); else dlg.setAttribute("open","");
+}
+document.addEventListener("click",function(e){var b=e.target.closest(".spot[data-k]"); if(b) openSpot(b.dataset.k);});
+document.getElementById("mClose").addEventListener("click",function(){dlg.close();});
+dlg.addEventListener("click",function(e){if(e.target===dlg) dlg.close();});
+
+/* ---------- flight cards with countdown ---------- */
+if(T.flights&&T.flights.length){
+  var n=T.flights.length;
+  document.getElementById("flights").innerHTML=T.flights.map(function(f,i){
+    return '<article class="fcard" aria-label="'+esc((f.tag||"")+" "+f.no)+'">'+
+     '<div class="ftop"><span>FLIGHT '+String(i+1).padStart(2,"0")+' / '+String(n).padStart(2,"0")+(f.tag?' · '+esc(f.tag):'')+'</span>'+(f.status?'<span class="fstatus">'+esc(f.status)+'</span>':'')+'</div>'+
+     '<div class="fair">'+esc(f.airline||"")+(f.aircraft?' · '+esc(f.aircraft):'')+'</div>'+
+     '<div class="froute"><div><div class="code">'+esc(f.from.code)+'</div><div class="city">'+esc(f.from.city)+'</div></div>'+
+     '<div class="mid">'+esc(f.no)+'<div class="line"></div>'+esc(f.duration||"")+'</div>'+
+     '<div class="right"><div class="code">'+esc(f.to.code)+'</div><div class="city">'+esc(f.to.city)+'</div></div></div>'+
+     '<div class="ftimes"><div>'+esc(f.departLabel||"")+'<b>'+esc(f.departTime)+' 出发</b></div><div style="text-align:right">'+esc(f.arriveLabel||"")+'<b>'+esc(f.arriveTime)+' 抵达</b></div></div>'+
+     '<div class="fcount"><div><small>距离起飞还剩</small><span class="cd" data-dep="'+esc(f.depart)+'">—</span></div>'+(f.price?'<div class="fprice">参考价<br>'+esc(f.price)+'</div>':'')+'</div></article>';
+  }).join("");
+  var pad=function(v){return String(v).padStart(2,"0");};
+  var tick=function(){
+    var now=Date.now();
+    document.querySelectorAll(".cd[data-dep]").forEach(function(el){
+      var ms=new Date(el.dataset.dep).getTime()-now;
+      if(isNaN(ms)){el.textContent="—";return;}
+      if(ms<=0){el.textContent="已起飞";return;}
+      var s=Math.floor(ms/1000),d=Math.floor(s/86400); s%=86400;
+      el.textContent=d+"天 "+pad(Math.floor(s/3600))+":"+pad(Math.floor(s%3600/60))+":"+pad(s%60);
+    });
+  };
+  tick(); setInterval(tick,1000);
+}
+
+/* ---------- map ---------- */
+if(hasMap){
+  var PL=T.map.places, AIR=T.map.airLegs||[], mapEl=document.getElementById("tripmap"), chips=document.getElementById("mapChips");
+  var dayInfo={}; (T.days||[]).forEach(function(x){dayInfo[x.date]=x;});
+  var flyColor=(SEG.fly&&SEG.fly.color)||"#5b5f97";
+  var chipDays=Object.keys(ROUTES);
+  chips.innerHTML='<button type="button" data-day="all" aria-pressed="true">全程</button>'+chipDays.map(function(d){
+    return '<button type="button" data-day="'+esc(d)+'" aria-pressed="false">'+esc(d)+' '+esc((dayInfo[d]||{}).weekday||"")+'</button>';}).join("");
+  document.getElementById("legend").innerHTML=(T.segments||[]).filter(function(s){return s.id!=="fly";}).map(function(s){return '<span><i style="background:'+esc(s.color)+'"></i>'+esc(s.label)+'</span>';}).join("")+
+    (AIR.length?'<span><i style="background:'+esc(flyColor)+';opacity:.7"></i>航班（虚线）</span>':'');
+  var colorOf=function(d){var x=dayInfo[d]; return x&&SEG[x.seg]?SEG[x.seg].color:"#c0392b";};
+  var ll=function(id){var p=PL[id]; return [p.lat,p.lng];};
+  var isAir=function(a,b){return AIR.some(function(l){return (l[0]===a&&l[1]===b)||(l[0]===b&&l[1]===a);});};
+  var popup=function(id){var p=PL[id], s='<b>'+esc(p.name)+'</b>'; if(p.spot&&T.spots&&T.spots[p.spot]) s+='<br><button type="button" class="spot" data-k="'+esc(p.spot)+'">看介绍</button>'; return s;};
+  var map=null, layer=null;
+  var draw=function(day){
+    if(!map) return;
+    if(layer) layer.remove();
+    layer=L.layerGroup().addTo(map);
+    var bounds=[];
+    var days=day==="all"?chipDays:[day];
+    days.forEach(function(d){
+      var ids=(ROUTES[d]||[]).filter(function(id){return PL[id];}), c=colorOf(d);
+      for(var i=0;i<ids.length-1;i++){
+        L.polyline([ll(ids[i]),ll(ids[i+1])],isAir(ids[i],ids[i+1])?{color:flyColor,weight:2.5,opacity:.75,dashArray:"6 6"}:{color:c,weight:day==="all"?3:4,opacity:.8}).addTo(layer);
+      }
+      if(day!=="all"){
+        var seen={};
+        ids.forEach(function(id,n){
+          bounds.push(ll(id)); if(seen[id]) return; seen[id]=1;
+          L.marker(ll(id),{icon:L.divIcon({className:"",html:'<div class="mapnum" style="color:'+esc(c)+'">'+(n+1)+'</div>',iconSize:[24,24],iconAnchor:[12,12]})})
+            .bindPopup(popup(id)).bindTooltip(PL[id].name,{direction:"top",offset:[0,-12]}).addTo(layer);
+        });
+      }
+    });
+    if(day==="all"){
+      Object.keys(PL).forEach(function(id){
+        var p=PL[id];
+        L.circleMarker(ll(id),{radius:p.kind==="spot"?5:7,color:"#fff",weight:2,fillColor:p.kind==="airport"?flyColor:(p.kind==="hotel"?"#1d1f23":"#c0392b"),fillOpacity:1}).bindPopup(popup(id)).addTo(layer);
+        bounds.push(ll(id));
+      });
+    }
+    if(bounds.length) map.fitBounds(bounds,{padding:[30,30],maxZoom:14});
+    chips.querySelectorAll("button").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.day===day?"true":"false");});
+  };
+  if(window.L){
+    map=L.map(mapEl,{scrollWheelZoom:false});
+    /* Esri tiles need no API key. (CARTO now requires a key; OSM's own tile server blocks requests without a Referer, e.g. file://) */
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",{
+      maxZoom:19,attribution:"Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors"}).addTo(map);
+    draw("all");
+  }else{
+    mapEl.innerHTML='<div class="mapfallback">地图需要联网加载，请检查网络后刷新页面。</div>';
+  }
+  chips.addEventListener("click",function(e){var b=e.target.closest("button[data-day]"); if(b) draw(b.dataset.day);});
+  document.addEventListener("click",function(e){var b=e.target.closest(".daymap[data-day]"); if(!b) return; draw(b.dataset.day); mapEl.scrollIntoView({behavior:"smooth",block:"center"});});
+}
+
+/* ---------- budget picker ---------- */
+var B=(T.budget&&T.budget.items)||[];
+function setStats(total){
+  var pp=fmt(Math.round(total/PEOPLE/10)*10);
+  document.querySelectorAll("[data-stat]").forEach(function(el){
+    var v=el.dataset.stat; if(v==="{{total}}") el.textContent=fmt(total); else if(v==="{{perPerson}}") el.textContent=pp;
+  });
+  var bt=document.getElementById("bTotal"), bp=document.getElementById("bPP");
+  if(bt) bt.textContent=fmt(total); if(bp) bp.textContent=pp;
+}
+if(B.length){
+  var KEY=M.storageKey||("trip-budget-"+(M.title||"")), st={sel:{},custom:{}};
+  var presetOf=function(it,which){var p=(it.presets||{})[which]; if(p===undefined) p=it.multi?[]:0; return Array.isArray(p)?p.slice():p;};
+  try{var saved=JSON.parse(localStorage.getItem(KEY)||"null"); if(saved&&saved.sel) st=saved;}catch(e){}
+  if(!st.custom) st.custom={};
+  B.forEach(function(it){ if(!(it.id in st.sel)) st.sel[it.id]=presetOf(it,"com"); });
+  var save=function(){try{localStorage.setItem(KEY,JSON.stringify(st));}catch(e){}};
+  var computed=function(it){
+    var s=st.sel[it.id], o=it.options||[];
+    if(it.multi) return (s||[]).reduce(function(t,i){return t+(o[i]?o[i].amount:0);},0);
+    return o[s]?o[s].amount:0;
+  };
+  var amount=function(it){return (it.id in st.custom)?st.custom[it.id]:computed(it);};
+  var cats=[], byCat={};
+  B.forEach(function(it){if(!byCat[it.cat]){byCat[it.cat]=[];cats.push(it.cat);} byCat[it.cat].push(it);});
+  var updateTotals=function(){
+    var tot=0;
+    cats.forEach(function(c){var sub=byCat[c].reduce(function(t,it){return t+amount(it);},0); tot+=sub; var el=document.querySelector('[data-sub="'+c+'"]'); if(el) el.textContent=fmt(sub);});
+    setStats(tot);
+  };
+  var render=function(){
+    var h="";
+    cats.forEach(function(c){
+      h+='<div class="card bcat"><div class="bcat-head">'+esc(c)+'<span data-sub="'+esc(c)+'"></span></div>';
+      byCat[c].forEach(function(it){
+        var custom=it.id in st.custom, s=st.sel[it.id], o=it.options||[];
+        h+='<div class="bi"><div class="bi-head"><span class="bi-name">'+esc(it.name)+'</span>'+(it.verified?'<span class="tag t-ok">已查</span>':'<span class="tag t-est">估</span>')+
+          '<span class="bi-amt">'+(custom?'<button type="button" class="undo" data-undo="'+esc(it.id)+'">↺ 还原</button>':'')+
+          '<span class="muted">'+esc(CUR)+'</span><input type="number" min="0" step="10" inputmode="numeric" aria-label="'+esc(it.name)+' 金额" class="'+(custom?"custom":"")+'" data-amt="'+esc(it.id)+'" value="'+Math.round(amount(it))+'"></span></div>'+
+          (it.note?'<div class="bi-note">'+rich(it.note)+'</div>':'');
+        if(o.length>1||it.multi){
+          h+='<div class="bi-opts'+(it.multi?' multi':'')+'">'+o.map(function(op,i){
+            var on=it.multi?(s||[]).indexOf(i)>=0:s===i;
+            return '<button type="button" data-opt="'+esc(it.id)+'" data-i="'+i+'" aria-pressed="'+on+'">'+esc(op.label)+' '+fmt(op.amount)+(op.detail?'<small>'+esc(op.detail)+'</small>':'')+'</button>';
+          }).join("")+'</div>';
+        }else if(o[0]&&o[0].detail){h+='<div class="bi-note">'+esc(o[0].label)+' · '+esc(o[0].detail)+'</div>';}
+        h+='</div>';
+      });
+      h+='</div>';
+    });
+    document.getElementById("budget").innerHTML=h;
+    updateTotals();
+  };
+  var bEl=document.getElementById("budget");
+  bEl.addEventListener("click",function(e){
+    var b=e.target.closest("button[data-opt]");
+    if(b){
+      var it=B.filter(function(x){return x.id===b.dataset.opt;})[0], i=+b.dataset.i;
+      if(it.multi){var arr=st.sel[it.id]||[], k=arr.indexOf(i); if(k>=0) arr.splice(k,1); else arr.push(i); st.sel[it.id]=arr;}
+      else st.sel[it.id]=i;
+      delete st.custom[it.id]; save(); render(); return;
+    }
+    var u=e.target.closest("button[data-undo]"); if(u){delete st.custom[u.dataset.undo]; save(); render();}
+  });
+  bEl.addEventListener("input",function(e){
+    var inp=e.target.closest("input[data-amt]"); if(!inp) return;
+    var v=parseFloat(inp.value); if(isNaN(v)||v<0) v=0;
+    st.custom[inp.dataset.amt]=v; inp.classList.add("custom"); save(); updateTotals();
+  });
+  bEl.addEventListener("change",function(e){if(e.target.closest("input[data-amt]")) render();});
+  document.querySelectorAll(".preset").forEach(function(b){
+    b.addEventListener("click",function(){
+      if(b.dataset.preset!=="reset"){var w=b.dataset.preset; B.forEach(function(it){st.sel[it.id]=presetOf(it,w);});}
+      st.custom={}; save(); render();
+    });
+  });
+  render();
+}
+
+/* ---------- theme toggle ---------- */
+document.getElementById("themeBtn").addEventListener("click",function(){
+  var r=document.documentElement, cur=r.getAttribute("data-theme");
+  var dark=cur?cur==="dark":window.matchMedia("(prefers-color-scheme: dark)").matches;
+  r.setAttribute("data-theme",dark?"light":"dark");
+});
+})();
+</script>
+</body>
+</html>
